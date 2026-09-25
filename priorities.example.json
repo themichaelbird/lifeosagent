@@ -1,0 +1,32 @@
+{
+  "decision_framework": ["Health", "Family", "Security", "Freedom", "Learning", "Impact", "Income"],
+  "active_priorities": [
+    "Finish an online course (due YYYY-MM-DD)",
+    "Build a shortlist of target companies",
+    "Ship the next version of a side project",
+    "Write a README for a portfolio project",
+    "Practice a foundational skill (e.g., SQL) three times a week"
+  ],
+  "non_negotiables": [
+    "Core personal values",
+    "Time with family and close friends",
+    "A hobby you protect no matter how busy things get"
+  ],
+  "hard_guardrails": [
+    "Never misrepresent the state of a project — describe it exactly as it is",
+    "Don't pursue opportunities that conflict with an existing agreement (e.g., a non-compete)",
+    "Paused projects stay paused — don't treat them as needing active time",
+    "Commitments to a mentor come before other project work"
+  ],
+  "good_week_vs_drift": {
+    "good": "Made progress on the top active priorities, or pivoted cleanly when something blocked one of them.",
+    "drift": "No movement on top priorities, or time went to busywork that doesn't ladder toward your goals.",
+    "on_pivot": "If a priority was blocked and a pivot happened, ask a follow-up question to clarify exactly what the pivot was and whether it changes the scope or timeline of the original priority — don't accept 'I pivoted' at face value.",
+    "on_drift": "If drift occurred, don't just log it — ask a follow-up question aimed at root cause: was it a time/system problem, a priority conflict, avoidance, or an unclear next step? Identify the inconsistency, explain why it matters, and end with one practical next action — no shame, no empty encouragement."
+  },
+  "open_tensions": [
+    "Whether to go deep in a familiar domain or explore a new one",
+    "Trade-off between mission fit and career growth when choosing where to work",
+    "When to make a public change (e.g., updating a profile) versus waiting for a deliberate decision point"
+  ]
+}
