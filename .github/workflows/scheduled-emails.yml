@@ -1,0 +1,50 @@
+name: Scheduled emails
+
+on:
+  schedule:
+    # GitHub cron is always UTC and has no daylight-saving awareness.
+    # Saturday 2pm US Central is 19:00 UTC during CDT (Mar-Nov) and 20:00 UTC
+    # during CST (Nov-Mar), so we schedule both and let the job skip whichever
+    # one isn't 2pm in Chicago that week.
+    - cron: "0 19 * * 6"
+    - cron: "0 20 * * 6"
+  # Lets you send the nudge by hand from the Actions tab for testing.
+  workflow_dispatch:
+
+jobs:
+  weekly-review-nudge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send weekly review nudge
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          NOTIFY_EMAIL: ${{ secrets.NOTIFY_EMAIL }}
+        run: |
+          hour=$(TZ=America/Chicago date +%H)
+          if [ "${{ github.event_name }}" != "workflow_dispatch" ] && [ "$hour" != "14" ]; then
+            echo "Chicago hour is $hour, not 14 (other DST trigger); skipping."
+            exit 0
+          fi
+
+          for name in RESEND_API_KEY NOTIFY_EMAIL; do
+            if [ -z "${!name}" ]; then
+              echo "::error::$name secret is not set. Add it under Settings > Secrets and variables > Actions."
+              exit 1
+            fi
+          done
+
+          body=$(printf '%s\n\n%s\n\n%s\n\n    %s' \
+            "Time for your weekly review." \
+            "How did this week go against your top active priorities?" \
+            "When you're ready, run it yourself from the lifeosagent folder:" \
+            "python weekly_review.py")
+
+          # jq builds the JSON so the address and body are escaped correctly.
+          jq -n \
+            --arg to "$NOTIFY_EMAIL" \
+            --arg text "$body" \
+            '{from: "onboarding@resend.dev", to: $to, subject: "Weekly Life OS Review", text: $text}' \
+          | curl --fail-with-body -sS https://api.resend.com/emails \
+              -H "Authorization: Bearer $RESEND_API_KEY" \
+              -H "Content-Type: application/json" \
+              -d @-
