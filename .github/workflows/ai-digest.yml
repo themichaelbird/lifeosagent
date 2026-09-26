@@ -1,0 +1,74 @@
+name: AI digest
+
+on:
+  schedule:
+    # GitHub cron is always UTC and has no daylight-saving awareness.
+    # Monday 3pm US Central is 20:00 UTC during CDT (Mar-Nov) and 21:00 UTC
+    # during CST (Nov-Mar), so we schedule both and let the job skip whichever
+    # one isn't 3pm in Chicago that week.
+    - cron: "0 20 * * 1"
+    - cron: "0 21 * * 1"
+  # Lets you run the digest by hand from the Actions tab for testing.
+  workflow_dispatch:
+
+jobs:
+  ai-digest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Chicago time
+        id: time
+        run: |
+          hour=$(TZ=America/Chicago date +%H)
+          if [ "${{ github.event_name }}" != "workflow_dispatch" ] && [ "$hour" != "15" ]; then
+            echo "Chicago hour is $hour, not 15 (other DST trigger); skipping."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check secrets
+        if: steps.time.outputs.skip != 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          NOTIFY_EMAIL: ${{ secrets.NOTIFY_EMAIL }}
+        run: |
+          for name in ANTHROPIC_API_KEY RESEND_API_KEY NOTIFY_EMAIL; do
+            if [ -z "${!name}" ]; then
+              echo "::error::$name secret is not set. Add it under Settings > Secrets and variables > Actions."
+              exit 1
+            fi
+          done
+
+      - name: Check out repo
+        if: steps.time.outputs.skip != 'true'
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        if: steps.time.outputs.skip != 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+
+      - name: Install dependencies
+        if: steps.time.outputs.skip != 'true'
+        run: pip install -r requirements.txt
+
+      # TODO: priorities.json is gitignored, so it isn't in the checkout, and
+      # ai_digest.py reads active_priorities from it. How the job gets it is
+      # an open design decision; until one is chosen, fail with a clear
+      # message instead of a Python traceback.
+      - name: Check priorities.json
+        if: steps.time.outputs.skip != 'true'
+        run: |
+          if [ ! -f priorities.json ]; then
+            echo "::error::priorities.json is missing (it's gitignored). ai_digest.py needs it for active_priorities."
+            exit 1
+          fi
+
+      - name: Run AI digest and send email
+        if: steps.time.outputs.skip != 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          NOTIFY_EMAIL: ${{ secrets.NOTIFY_EMAIL }}
+        run: python ai_digest.py
